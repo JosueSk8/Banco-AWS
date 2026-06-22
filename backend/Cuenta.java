@@ -1,5 +1,3 @@
-package com.example.backend;
-
 public class Cuenta {
     private final String id;
     private final String propietario;
@@ -11,12 +9,10 @@ public class Cuenta {
         this.balance = balance;
     }
 
-    // Getters
     public String getId() { return id; }
     public String getPropietario() { return propietario; }
     public synchronized double getBalance() { return balance; }
 
-    // Métodos para modificar el saldo de forma segura
     public synchronized void depositar(double monto) {
         this.balance += monto;
     }
@@ -26,6 +22,6 @@ public class Cuenta {
             this.balance -= monto;
             return true;
         }
-        return false; // Fondos insuficientes
+        return false;
     }
 }
