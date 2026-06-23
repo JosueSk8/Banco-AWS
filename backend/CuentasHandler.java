@@ -42,10 +42,11 @@ public class CuentasHandler implements HttpHandler {
     }
 
     private void sendResponse(HttpExchange exchange, int statusCode, String response) throws IOException {
-        exchange.getResponseHeaders().set("Content-Type", "application/json");
-        exchange.sendResponseHeaders(statusCode, response.getBytes().length);
-        OutputStream os = exchange.getResponseBody();
-        os.write(response.getBytes());
-        os.close();
+    exchange.getResponseHeaders().set("Content-Type", "application/json");
+    exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");   // nueva línea
+    exchange.sendResponseHeaders(statusCode, response.getBytes().length);
+    OutputStream os = exchange.getResponseBody();
+    os.write(response.getBytes());
+    os.close();
     }
 }

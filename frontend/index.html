@@ -1,13 +1,99 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>frontend</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Mini Banco - Dashboard</title>
+  <style>
+    body {
+      background-color: #0a0d12;
+      color: #e5e9f0;
+      font-family: sans-serif;
+      padding: 20px;
+    }
+    .card {
+      background-color: #12161d;
+      border: 1px solid #1f2530;
+      border-radius: 10px;
+      padding: 16px;
+      width: 220px;
+    }
+    .estado-activo {
+      color: #34d399;
+    }
+    .contenedor-tarjetas {
+      display: flex;
+      gap: 16px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Mini Banco Distribuido</h1>
+
+  <div class="contenedor-tarjetas">
+
+    <div class="card">
+      <h2>nodo-1 (Líder)</h2>
+      <p class="estado-activo">Activo</p>
+      <p>Cuentas: 820000</p>
+      <p>Saldo total: $65,482,310.55</p>
+      <p>Transferencias: 1200</p>
+      <p>Última TX: TX-54321</p>
+      <p>CPU: 42%</p>
+      <p>RAM: 55%</p>
+      <p>Disco: 30%</p>
+      <p>Cuenta de prueba (id 1): <span id="cuenta1">cargando...</span></p>
+    </div>
+
+    <div class="card">
+      <h2>nodo-2 (Réplica)</h2>
+      <p class="estado-activo">Activo</p>
+      <p>Cuentas: 820000</p>
+      <p>Saldo total: $65,482,310.55</p>
+      <p>Transferencias: 1200</p>
+      <p>Última TX: TX-54321</p>
+      <p>CPU: 25%</p>
+      <p>RAM: 40%</p>
+      <p>Disco: 28%</p>
+      <p>Cuenta de prueba (id 2): <span id="cuenta2">cargando...</span></p>
+    </div>
+
+    <div class="card">
+      <h2>nodo-3 (Réplica)</h2>
+      <p class="estado-activo">Activo</p>
+      <p>Cuentas: 820000</p>
+      <p>Saldo total: $65,482,310.55</p>
+      <p>Transferencias: 1200</p>
+      <p>Última TX: TX-54321</p>
+      <p>CPU: 33%</p>
+      <p>RAM: 47%</p>
+      <p>Disco: 31%</p>
+      <p>Cuenta de prueba (id 3): <span id="cuenta3">cargando...</span></p>
+    </div>
+
+  </div>
+
+  <script>
+    function consultarCuenta(idCuenta, idElemento) {
+      const elemento = document.getElementById(idElemento);
+
+      fetch(`http://localhost:8080/api/accounts/${idCuenta}`)
+        .then((respuesta) => respuesta.json())
+        .then((datos) => {
+          elemento.textContent = datos.propietario + " - $" + datos.balance;
+        })
+        .catch((error) => {
+          elemento.textContent = "Error: " + error;
+        });
+    }
+
+    function actualizarTodo() {
+      consultarCuenta(1, "cuenta1");
+      consultarCuenta(2, "cuenta2");
+      consultarCuenta(3, "cuenta3");
+    }
+
+    actualizarTodo();
+    setInterval(actualizarTodo, 1000);
+  </script>
+</body>
 </html>
