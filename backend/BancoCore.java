@@ -3,10 +3,17 @@ import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class BancoCore {
 
     private final ConcurrentHashMap<String, Cuenta> cuentasDB = new ConcurrentHashMap<>();
+    
+    // Variables seguras para concurrencia masiva (Métricas)
+    private double saldoTotalGlobal = 0.0;
+    private final AtomicLong totalTransferencias = new AtomicLong(0);
+    private final AtomicReference<String> ultimaTxId = new AtomicReference<>("Ninguna");
 
     public void inicializarBaseDeDatos() {
         System.out.println("Arrancando motor bancario en memoria (Java Puro)...");
@@ -16,6 +23,7 @@ public class BancoCore {
 
         Random random = new Random(12345);
         int idCounter = 1;
+        double sumaTemporal = 0.0;
 
         for (String nombre : nombres) {
             for (String ap1 : apellidos) {
@@ -27,9 +35,11 @@ public class BancoCore {
                     String nombreCompleto = nombre + " " + ap1 + " " + ap2;
                     
                     cuentasDB.put(id, new Cuenta(id, nombreCompleto, numero));
+                    sumaTemporal += numero; // Sumamos el dinero total del banco
                 }
             }
         }
+        this.saldoTotalGlobal = sumaTemporal;
         System.out.println("Base de datos cargada. Total de cuentas: " + cuentasDB.size());
     }
 
@@ -44,7 +54,7 @@ public class BancoCore {
                 }
             }
         } catch (Exception e) {
-            System.out.println("Error leyendo archivo: " + nombreArchivo + ". Asegurate de que este en la misma carpeta que Main.java.");
+            System.out.println("Error leyendo archivo: " + nombreArchivo);
         }
         return lista;
     }
@@ -69,10 +79,20 @@ public class BancoCore {
                 if (origen.getBalance() >= monto) {
                     origen.retirar(monto);
                     destino.depositar(monto);
+                    
+                    // Actualizamos las métricas de forma segura
+                    totalTransferencias.incrementAndGet();
+                    ultimaTxId.set("TX-" + (System.currentTimeMillis() % 100000));
+                    
                     return true;
                 }
                 return false;
             }
         }
     }
+
+    // Getters para que el MetricsHandler lea los datos
+    public double getSaldoTotalGlobal() { return saldoTotalGlobal; }
+    public long getTotalTransferencias() { return totalTransferencias.get(); }
+    public String getUltimaTxId() { return ultimaTxId.get(); }
 }

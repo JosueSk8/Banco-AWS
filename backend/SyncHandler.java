@@ -5,27 +5,16 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 
-public class TransferenciaHandler implements HttpHandler {
+public class SyncHandler implements HttpHandler {
     
     private final BancoCore bancoCore;
 
-    public TransferenciaHandler(BancoCore bancoCore) {
+    public SyncHandler(BancoCore bancoCore) {
         this.bancoCore = bancoCore;
     }
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
-        // --- CORS ---
-        exchange.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
-        exchange.getResponseHeaders().add("Access-Control-Allow-Methods", "POST, OPTIONS");
-        exchange.getResponseHeaders().add("Access-Control-Allow-Headers", "Content-Type, Authorization");
-
-        // Petición preflight del navegador
-        if ("OPTIONS".equals(exchange.getRequestMethod())) {
-            exchange.sendResponseHeaders(204, -1);
-            return;
-        }
-
         if ("POST".equals(exchange.getRequestMethod())) {
             InputStream is = exchange.getRequestBody();
             String body = new String(is.readAllBytes(), StandardCharsets.UTF_8);
@@ -35,26 +24,19 @@ public class TransferenciaHandler implements HttpHandler {
                 String target = extractJsonValue(body, "targetAccountId");
                 double amount = Double.parseDouble(extractJsonValue(body, "amount"));
 
-                // Intentamos hacer la transferencia en memoria
-                boolean exito = bancoCore.transferir(source, target, amount);
-
-                if (exito) {
-                    // ¡MAGIA DISTRIBUIDA! Si salió bien, le avisamos a los demás nodos
-                    ReplicadorNodos.propagar(source, target, amount);
-                    
-                    sendResponse(exchange, 200, "{\"mensaje\": \"Transferencia exitosa\"}");
-                } else {
-                    sendResponse(exchange, 400, "{\"error\": \"Fondos insuficientes o cuentas invalidas\"}");
-                }
+                // Ejecutamos la transferencia en la memoria de la réplica
+                bancoCore.transferir(source, target, amount);
+                
+                // Respondemos éxito sin llamar al ReplicadorNodos
+                sendResponse(exchange, 200, "{\"status\": \"Sincronizado\"}");
             } catch (Exception e) {
-                sendResponse(exchange, 400, "{\"error\": \"Formato JSON incorrecto\"}");
+                sendResponse(exchange, 400, "{\"error\": \"Error al sincronizar\"}");
             }
         } else {
             sendResponse(exchange, 405, "{\"error\": \"Metodo no permitido\"}");
         }
     }
 
-    // Extractor manual de JSON
     private String extractJsonValue(String json, String key) {
         String searchKey = "\"" + key + "\"";
         int keyIndex = json.indexOf(searchKey);
@@ -70,7 +52,6 @@ public class TransferenciaHandler implements HttpHandler {
         return value;
     }
 
-    // Respuesta genérica
     private void sendResponse(HttpExchange exchange, int statusCode, String response) throws IOException {
         exchange.getResponseHeaders().set("Content-Type", "application/json");
         exchange.sendResponseHeaders(statusCode, response.getBytes().length);
