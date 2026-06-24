@@ -1,28 +1,38 @@
-plugins {
-    id 'java'
-    id 'application'
-}
+apply plugin: 'java'
+apply plugin: 'application'
 
 group = 'com.example'
 version = '1.0.0'
 
-java {
-    toolchain { languageVersion = JavaLanguageVersion.of(17) }
+sourceCompatibility = '17'
+targetCompatibility = '17'
+
+repositories {
+    mavenCentral()
 }
 
-repositories { mavenCentral() }
-
 dependencies {
-    // Librerías nativas de AWS
-    implementation platform('software.amazon.awssdk:bom:2.25.11')
-    implementation 'software.amazon.awssdk:s3'
-    implementation 'software.amazon.awssdk:sns'
-    implementation 'software.amazon.awssdk:sqs'
-    
-    // Librería para manejar JSON fácilmente
+    implementation 'software.amazon.awssdk:s3:2.25.11'
+    implementation 'software.amazon.awssdk:sns:2.25.11'
+    implementation 'software.amazon.awssdk:sqs:2.25.11'
+
     implementation 'com.google.code.gson:gson:2.10.1'
 }
 
-application {
-    mainClass = 'Main' 
+// --- El mapeo vital para encontrar el código ---
+sourceSets {
+    main {
+        java {
+            srcDirs = ['.']
+        }
+    }
+}
+
+mainClassName = 'Main'
+
+// --- El bloque para atrapar argumentos ---
+run {
+    if (project.hasProperty('rol')) {
+        args project.rol
+    }
 }
