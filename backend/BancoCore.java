@@ -10,11 +10,17 @@ public class BancoCore {
 
     private final ConcurrentHashMap<String, Cuenta> cuentasDB = new ConcurrentHashMap<>();
     
-    // Variables seguras para concurrencia masiva (Métricas)
+    // Variables seguras para concurrencia masiva 
     private double saldoTotalGlobal = 0.0;
     private final AtomicLong totalTransferencias = new AtomicLong(0);
     private final AtomicReference<String> ultimaTxId = new AtomicReference<>("Ninguna");
+      //VARIABLES DE AWS 
+    private SnsPublisher snsPublisher;
+    private S3Logger s3Logger;
 
+    // Setters para inyectar las dependencias desde el Main
+    public void setSnsPublisher(SnsPublisher snsPublisher) { this.snsPublisher = snsPublisher; }
+    public void setS3Logger(S3Logger s3Logger) { this.s3Logger = s3Logger; }
     public void inicializarBaseDeDatos() {
         System.out.println("Arrancando motor bancario en memoria (Java Puro)...");
 
@@ -73,22 +79,28 @@ public class BancoCore {
 
         Cuenta primerLock = fromId.compareTo(toId) < 0 ? origen : destino;
         Cuenta segundoLock = fromId.compareTo(toId) < 0 ? destino : origen;
-
         synchronized (primerLock) {
             synchronized (segundoLock) {
                 if (origen.getBalance() >= monto) {
                     origen.retirar(monto);
                     destino.depositar(monto);
-                    
                     // Actualizamos las métricas de forma segura
-                    totalTransferencias.incrementAndGet();
+                    long secuencia = totalTransferencias.incrementAndGet();
                     ultimaTxId.set("TX-" + (System.currentTimeMillis() % 100000));
                     
+                    // INTEGRACIÓN AWS: Guardado en S3 y Aviso a SNS 
+                    if (s3Logger != null) {
+                        s3Logger.registrarTransaccion(fromId, toId, monto, secuencia);
+                    }
+                    if (snsPublisher != null) {
+                        snsPublisher.publicarTransferencia(fromId, toId, monto);
+                    }
                     return true;
                 }
                 return false;
             }
         }
+
     }
 
     // Getters para que el MetricsHandler lea los datos

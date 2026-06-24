@@ -36,12 +36,10 @@ public class TransferenciaHandler implements HttpHandler {
                 double amount = Double.parseDouble(extractJsonValue(body, "amount"));
 
                 // Intentamos hacer la transferencia en memoria
+                //Si es exitosa, BancoCore ahora dispara automáticamente SNS y S3
                 boolean exito = bancoCore.transferir(source, target, amount);
 
                 if (exito) {
-                    // ¡MAGIA DISTRIBUIDA! Si salió bien, le avisamos a los demás nodos
-                    ReplicadorNodos.propagar(source, target, amount);
-                    
                     sendResponse(exchange, 200, "{\"mensaje\": \"Transferencia exitosa\"}");
                 } else {
                     sendResponse(exchange, 400, "{\"error\": \"Fondos insuficientes o cuentas invalidas\"}");
