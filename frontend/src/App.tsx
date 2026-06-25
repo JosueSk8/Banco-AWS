@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 
-//CONEXIÓN A AWS 
+// --- CONFIGURACIÓN DE CONEXIÓN A AWS ---
 const IP_LIDER = "35.153.159.152";
 const BASE_URL = `http://${IP_LIDER}:8080`;
+
 
 function App() {
   const [metricas, setMetricas] = useState({
@@ -12,8 +13,8 @@ function App() {
     transferencias: 0,
     ultimaTx: "Ninguna",
     ramUsoPorcentaje: 0,
-    cpuUsoPorcentaje: 0, // metrica del backend
-    discoUsoPorcentaje: 0 //  metrica del backend
+    cpuUsoPorcentaje: 0, 
+    discoUsoPorcentaje: 0 
   });
 
   // Estados principales para el panel de transferencia
@@ -40,7 +41,7 @@ function App() {
       if (!id) return;
       fetch(`${BASE_URL}/api/accounts/${id}`)
         .then(res => res.json())
-        .then(data => setter(`${data.propietario} - $${data.balance.toFixed(2)}`))
+        .then(data => setter(`${data.propietario} - $${(data.balance || 0).toFixed(2)}`))
         .catch(() => setter("Error: Cuenta no existe"));
     };
 
@@ -61,11 +62,7 @@ function App() {
       return;
     }
 
-<<<<<<< HEAD
     fetch(`${BASE_URL}/api/transactions/transfer`, {
-=======
-    fetch('http://localhost:8080/api/transactions/transfer', {
->>>>>>> 3f2da2a855dc431f89b9b249fcc607d1a0f69290
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ sourceAccountId: origen, targetAccountId: destino, amount: parseFloat(monto) })
@@ -75,37 +72,29 @@ function App() {
     .catch(() => alert("Error de conexión al transferir"));
   };
 
-  // Sincronización automática: si cambias el ID en el panel, se actualiza el monitor
+  // Sincronización automática
   const manejarCambioOrigen = (val: string) => { setOrigen(val); setMon1(val); };
   const manejarCambioDestino = (val: string) => { setDestino(val); setMon2(val); };
 
-  // Renderizado de las tarjetas con formato de moneda y etiquetas dinámicas
+  // Renderizado de las tarjetas blindado contra nulos
   const renderCard = (
     titulo: string, 
     monitor: string, 
     setMonitor: React.Dispatch<React.SetStateAction<string>>, 
     datos: string, 
-<<<<<<< HEAD
-=======
-    cpu: number, 
-    disco: number, 
->>>>>>> 3f2da2a855dc431f89b9b249fcc607d1a0f69290
     etiquetaBusqueda: string = "Monitorear Cuenta ID:"
   ) => (
     <div className="card">
       <h2>{titulo}</h2>
       <p className="estado-activo">Activo</p>
       
-      {/* Formato de moneda con separadores de miles y decimales */}
-      <p>Saldo total: ${metricas.saldoTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+      {/* Fallback de 0 en saldoTotal por seguridad */}
+      <p>Saldo total: ${(metricas.saldoTotal || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
       
-      <p>Transferencias: {metricas.transferencias}</p>
-<<<<<<< HEAD
-      {/* Las métricas ahora son dinámicas y vienen del backend */}
-      <p>CPU: {metricas.cpuUsoPorcentaje.toFixed(2)}% | RAM: {metricas.ramUsoPorcentaje.toFixed(2)}% | Disco: {metricas.discoUsoPorcentaje.toFixed(2)}%</p>
-=======
-      <p>CPU: {cpu}% | RAM: {metricas.ramUsoPorcentaje.toFixed(2)}%</p>
->>>>>>> 3f2da2a855dc431f89b9b249fcc607d1a0f69290
+      <p>Transferencias: {metricas.transferencias || 0}</p>
+      
+      {/* AQUÍ ESTÁ LA SOLUCIÓN: Agregamos || 0 para evitar que .toFixed() rompa la pantalla si la métrica no llega */}
+      <p>CPU: {(metricas.cpuUsoPorcentaje || 0).toFixed(2)}% | RAM: {(metricas.ramUsoPorcentaje || 0).toFixed(2)}% | Disco: {(metricas.discoUsoPorcentaje || 0).toFixed(2)}%</p>
       
       <div style={{ marginTop: '15px', padding: '12px', backgroundColor: '#0a0d12', borderRadius: '8px', border: '1px solid #1f2530' }}>
         <label style={{ display: 'block', fontSize: '11px', color: '#60a5fa', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
@@ -209,15 +198,9 @@ function App() {
 
       {/* Renderizado de los Nodos */}
       <div className="contenedor-tarjetas">
-
-        {/* eliminamos los números quemados  en la llamada a renderCard */}
         {renderCard("nodo-1 (Líder)", mon1, setMon1, datosMon1, "Monitorear Origen:")}
         {renderCard("nodo-2 (Réplica)", mon2, setMon2, datosMon2, "Monitorear Destino:")}
         {renderCard("nodo-3 (Réplica)", mon3, setMon3, datosMon3, "🔍 Búsqueda Libre (Auditoría):")}
-        {renderCard("nodo-1 (Líder)", mon1, setMon1, datosMon1, 42, 30, "Monitorear Origen:")}
-        {renderCard("nodo-2 (Réplica)", mon2, setMon2, datosMon2, 25, 28, "Monitorear Destino:")}
-        {renderCard("nodo-3 (Réplica)", mon3, setMon3, datosMon3, 33, 31, "🔍 Búsqueda Libre (Auditoría):")}
-
       </div>
     </div>
   );
