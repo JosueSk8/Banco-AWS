@@ -209,16 +209,15 @@ function App() {
 
       {/* Renderizado de los Nodos */}
       <div className="contenedor-tarjetas">
-<<<<<<< HEAD
+
         {/* eliminamos los números quemados  en la llamada a renderCard */}
         {renderCard("nodo-1 (Líder)", mon1, setMon1, datosMon1, "Monitorear Origen:")}
         {renderCard("nodo-2 (Réplica)", mon2, setMon2, datosMon2, "Monitorear Destino:")}
         {renderCard("nodo-3 (Réplica)", mon3, setMon3, datosMon3, "🔍 Búsqueda Libre (Auditoría):")}
-=======
         {renderCard("nodo-1 (Líder)", mon1, setMon1, datosMon1, 42, 30, "Monitorear Origen:")}
         {renderCard("nodo-2 (Réplica)", mon2, setMon2, datosMon2, 25, 28, "Monitorear Destino:")}
         {renderCard("nodo-3 (Réplica)", mon3, setMon3, datosMon3, 33, 31, "🔍 Búsqueda Libre (Auditoría):")}
->>>>>>> 3f2da2a855dc431f89b9b249fcc607d1a0f69290
+
       </div>
     </div>
   );
