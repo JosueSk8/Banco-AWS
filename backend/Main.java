@@ -14,22 +14,26 @@ public class Main {
         // Inicializamos el motor en RAM (Las 3 máquinas hacen esto)
         BancoCore bancoCore = new BancoCore();
         bancoCore.inicializarBaseDeDatos();
-        if (rol.equals("leader")) {
-            System.out.println("Levantando NODO LÍDER...");
-            
-            // Inyectamos las capacidades de Nube al Banco
-            bancoCore.setS3Logger(new S3Logger());
-            bancoCore.setSnsPublisher(new SnsPublisher());
+       if (rol.equals("leader")) {
+        System.out.println("Levantando NODO LÍDER...");
 
-            // Levantamos el servidor HTTP para recibir tráfico
-            HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
-            server.createContext("/api/accounts", new CuentasHandler(bancoCore));
-            server.createContext("/api/transactions/transfer", new TransferenciaHandler(bancoCore));
-            server.createContext("/api/metrics", new MetricsHandler(bancoCore));
-            server.setExecutor(java.util.concurrent.Executors.newCachedThreadPool());
-            server.start();
-            System.out.println("Servidor HTTP nativo iniciado en el puerto 8080...");
+        // 1. Recuperación ante desastres — ANTES de conectar el logger/publisher,
+        //    para no re-escribir en S3 ni re-publicar a SNS transacciones que ya existían
+        S3Logger s3Logger = new S3Logger();
+        long ultimaTxLocal = bancoCore.getTotalTransferencias();
+        s3Logger.recuperarDesdeS3(ultimaTxLocal, bancoCore);
 
+        // 2. Ya con el estado reconstruido, conectamos las capacidades en vivo
+        bancoCore.setS3Logger(s3Logger);
+        bancoCore.setSnsPublisher(new SnsPublisher());
+
+        HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
+        server.createContext("/api/accounts", new CuentasHandler(bancoCore));
+        server.createContext("/api/transactions/transfer", new TransferenciaHandler(bancoCore));
+        server.createContext("/api/metrics", new MetricsHandler(bancoCore));
+        server.setExecutor(java.util.concurrent.Executors.newCachedThreadPool());
+        server.start();
+        System.out.println("Servidor HTTP nativo iniciado en el puerto 8080...");
         } else if (rol.startsWith("replica")) {
             // Ejemplo: replica2 o replica3
             String nombreCola = rol.equals("replica2") ? "Cola-Nodo2" : "Cola-Nodo3";
