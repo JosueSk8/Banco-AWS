@@ -61,7 +61,11 @@ function App() {
       return;
     }
 
+<<<<<<< HEAD
     fetch(`${BASE_URL}/api/transactions/transfer`, {
+=======
+    fetch('http://localhost:8080/api/transactions/transfer', {
+>>>>>>> 3f2da2a855dc431f89b9b249fcc607d1a0f69290
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ sourceAccountId: origen, targetAccountId: destino, amount: parseFloat(monto) })
@@ -81,6 +85,11 @@ function App() {
     monitor: string, 
     setMonitor: React.Dispatch<React.SetStateAction<string>>, 
     datos: string, 
+<<<<<<< HEAD
+=======
+    cpu: number, 
+    disco: number, 
+>>>>>>> 3f2da2a855dc431f89b9b249fcc607d1a0f69290
     etiquetaBusqueda: string = "Monitorear Cuenta ID:"
   ) => (
     <div className="card">
@@ -91,8 +100,12 @@ function App() {
       <p>Saldo total: ${metricas.saldoTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
       
       <p>Transferencias: {metricas.transferencias}</p>
+<<<<<<< HEAD
       {/* Las métricas ahora son dinámicas y vienen del backend */}
       <p>CPU: {metricas.cpuUsoPorcentaje.toFixed(2)}% | RAM: {metricas.ramUsoPorcentaje.toFixed(2)}% | Disco: {metricas.discoUsoPorcentaje.toFixed(2)}%</p>
+=======
+      <p>CPU: {cpu}% | RAM: {metricas.ramUsoPorcentaje.toFixed(2)}%</p>
+>>>>>>> 3f2da2a855dc431f89b9b249fcc607d1a0f69290
       
       <div style={{ marginTop: '15px', padding: '12px', backgroundColor: '#0a0d12', borderRadius: '8px', border: '1px solid #1f2530' }}>
         <label style={{ display: 'block', fontSize: '11px', color: '#60a5fa', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
@@ -196,10 +209,16 @@ function App() {
 
       {/* Renderizado de los Nodos */}
       <div className="contenedor-tarjetas">
+<<<<<<< HEAD
         {/* eliminamos los números quemados  en la llamada a renderCard */}
         {renderCard("nodo-1 (Líder)", mon1, setMon1, datosMon1, "Monitorear Origen:")}
         {renderCard("nodo-2 (Réplica)", mon2, setMon2, datosMon2, "Monitorear Destino:")}
         {renderCard("nodo-3 (Réplica)", mon3, setMon3, datosMon3, "🔍 Búsqueda Libre (Auditoría):")}
+=======
+        {renderCard("nodo-1 (Líder)", mon1, setMon1, datosMon1, 42, 30, "Monitorear Origen:")}
+        {renderCard("nodo-2 (Réplica)", mon2, setMon2, datosMon2, 25, 28, "Monitorear Destino:")}
+        {renderCard("nodo-3 (Réplica)", mon3, setMon3, datosMon3, 33, 31, "🔍 Búsqueda Libre (Auditoría):")}
+>>>>>>> 3f2da2a855dc431f89b9b249fcc607d1a0f69290
       </div>
     </div>
   );
