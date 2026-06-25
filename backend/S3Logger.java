@@ -27,7 +27,9 @@ public class S3Logger {
             String fileName = String.format("tx-%07d.json", secuencia);
             PutObjectRequest putOb = PutObjectRequest.builder().bucket(BUCKET_NAME).key(fileName).build();
             s3Client.putObject(putOb, RequestBody.fromString(gson.toJson(tx)));
-        } catch (Exception e) {}
+        } catch (Exception e) {
+            System.err.println("Error al guardar log en S3: " + e.getMessage());
+        }
     }
 
     public void recuperarDesdeS3(long ultimaTxLocal, BancoCore bancoCore) {
@@ -35,25 +37,41 @@ public class S3Logger {
         try {
             ListObjectsV2Request listReq = ListObjectsV2Request.builder().bucket(BUCKET_NAME).prefix("tx-").build();
             ListObjectsV2Response listRes;
+            
             do {
                 listRes = s3Client.listObjectsV2(listReq);
+                if (listRes.contents() == null) break;
+
                 for (S3Object obj : listRes.contents()) {
+                    // Extraer número de secuencia del key del archivo (ej. tx-0000005.json)
                     long secS3 = Long.parseLong(obj.key().substring(3, obj.key().indexOf(".json")));
+                    
                     if (secS3 > ultimaTxLocal) {
                         GetObjectRequest getReq = GetObjectRequest.builder().bucket(BUCKET_NAME).key(obj.key()).build();
                         String json = s3Client.getObjectAsBytes(getReq).asUtf8String();
                         JsonObject tx = gson.fromJson(json, JsonObject.class);
-                        bancoCore.transferir(
+                        
+                        // Llamada al método histórico corregido
+                        boolean exito = bancoCore.recuperarTransferenciaHistorica(
                             tx.get("sourceAccountId").getAsString(), 
                             tx.get("targetAccountId").getAsString(), 
-                            tx.get("amount").getAsDouble()
+                            tx.get("amount").getAsDouble(),
+                            secS3
                         );
-                        System.out.println("Recuperada TX: " + obj.key());
+                        
+                        if (exito) {
+                            System.out.println("Recuperada e inyectada con éxito TX: " + obj.key());
+                        } else {
+                            System.err.println("Fallo al aplicar balance para la transacción: " + obj.key());
+                        }
                     }
                 }
                 listReq = listReq.toBuilder().continuationToken(listRes.nextContinuationToken()).build();
             } while (listRes.isTruncated());
-            System.out.println("Recuperación completada.");
-        } catch (Exception e) { System.err.println("Fallo en S3: " + e.getMessage()); }
+            
+            System.out.println("Recuperación completada de logs S3.");
+        } catch (Exception e) { 
+            System.err.println("Fallo crítico en S3 durante la reconstrucción: " + e.getMessage()); 
+        }
     }
 }

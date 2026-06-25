@@ -10,17 +10,16 @@ public class BancoCore {
 
     private final ConcurrentHashMap<String, Cuenta> cuentasDB = new ConcurrentHashMap<>();
     
-    // Variables seguras para concurrencia masiva 
     private double saldoTotalGlobal = 0.0;
     private final AtomicLong totalTransferencias = new AtomicLong(0);
     private final AtomicReference<String> ultimaTxId = new AtomicReference<>("Ninguna");
-      //VARIABLES DE AWS 
+    
     private SnsPublisher snsPublisher;
     private S3Logger s3Logger;
 
-    // Setters para inyectar las dependencias desde el Main
     public void setSnsPublisher(SnsPublisher snsPublisher) { this.snsPublisher = snsPublisher; }
     public void setS3Logger(S3Logger s3Logger) { this.s3Logger = s3Logger; }
+
     public void inicializarBaseDeDatos() {
         System.out.println("Arrancando motor bancario en memoria (Java Puro)...");
 
@@ -41,7 +40,7 @@ public class BancoCore {
                     String nombreCompleto = nombre + " " + ap1 + " " + ap2;
                     
                     cuentasDB.put(id, new Cuenta(id, nombreCompleto, numero));
-                    sumaTemporal += numero; // Sumamos el dinero total del banco
+                    sumaTemporal += numero;
                 }
             }
         }
@@ -69,6 +68,7 @@ public class BancoCore {
         return cuentasDB.get(id);
     }
 
+    // Método para transferencias EN VIVO
     public boolean transferir(String fromId, String toId, double monto) {
         if (fromId.equals(toId) || monto <= 0) return false;
         
@@ -79,16 +79,16 @@ public class BancoCore {
 
         Cuenta primerLock = fromId.compareTo(toId) < 0 ? origen : destino;
         Cuenta segundoLock = fromId.compareTo(toId) < 0 ? destino : origen;
+        
         synchronized (primerLock) {
             synchronized (segundoLock) {
                 if (origen.getBalance() >= monto) {
                     origen.retirar(monto);
                     destino.depositar(monto);
-                    // Actualizamos las métricas de forma segura
+                    
                     long secuencia = totalTransferencias.incrementAndGet();
                     ultimaTxId.set("TX-" + (System.currentTimeMillis() % 100000));
                     
-                    // INTEGRACIÓN AWS: Guardado en S3 y Aviso a SNS 
                     if (s3Logger != null) {
                         s3Logger.registrarTransaccion(fromId, toId, monto, secuencia);
                     }
@@ -100,10 +100,36 @@ public class BancoCore {
                 return false;
             }
         }
-
     }
 
-    // Getters para que el MetricsHandler lea los datos
+    // Método exclusivo para RECUPERACIÓN ANTE DESASTRES
+    public boolean recuperarTransferenciaHistorica(String fromId, String toId, double monto, long secuenciaS3) {
+        if (fromId.equals(toId) || monto <= 0) return false;
+        
+        Cuenta origen = cuentasDB.get(fromId);
+        Cuenta destino = cuentasDB.get(toId);
+        
+        if (origen == null || destino == null) return false;
+
+        Cuenta primerLock = fromId.compareTo(toId) < 0 ? origen : destino;
+        Cuenta segundoLock = fromId.compareTo(toId) < 0 ? destino : origen;
+        
+        synchronized (primerLock) {
+            synchronized (segundoLock) {
+                if (origen.getBalance() >= monto) {
+                    origen.retirar(monto);
+                    destino.depositar(monto);
+                    
+                    // Sincroniza el contador con la secuencia real más alta procesada en S3
+                    totalTransferencias.updateAndGet(actual -> Math.max(actual, secuenciaS3));
+                    ultimaTxId.set("TX-RECUPERADA-" + secuenciaS3);
+                    return true;
+                }
+                return false;
+            }
+        }
+    }
+
     public double getSaldoTotalGlobal() { return saldoTotalGlobal; }
     public long getTotalTransferencias() { return totalTransferencias.get(); }
     public String getUltimaTxId() { return ultimaTxId.get(); }
