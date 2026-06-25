@@ -35,11 +35,9 @@ public class Main {
         server.start();
         System.out.println("Servidor HTTP nativo iniciado en el puerto 8080...");
         } else if (rol.startsWith("replica")) {
-            // Ejemplo: replica2 o replica3
             String nombreCola = rol.equals("replica2") ? "Cola-Nodo2" : "Cola-Nodo3";
             System.out.println("Levantando RÉPLICA escuchando en " + nombreCola + "...");
             
-            // 1. Recuperación ante desastres (Disaster Recovery)
             S3Logger s3Logger = new S3Logger();
             long ultimaTxLocal = bancoCore.getTotalTransferencias(); 
             s3Logger.recuperarDesdeS3(ultimaTxLocal, bancoCore);
